@@ -56,7 +56,7 @@ def test_attention_batch_variance(
     
     print(f"\nTesting attention nondeterminism across {num_iterations} iterations")
     print(f"Sequence length: {seq_len}, Model dim: {d_model}, Heads: {num_heads}")
-    print("-" * 60)
+
     
     for batch_size in batch_sizes:
         outputs = []
@@ -136,7 +136,7 @@ def test_torch_sdpa_nondeterminism(
     results = {}
     
     print(f"\nTesting PyTorch's F.scaled_dot_product_attention")
-    print("-" * 60)
+
     
     for batch_size in batch_sizes:
         outputs = []
@@ -175,24 +175,19 @@ def test_attention_with_batch_invariant_ops():
     """Test attention using batch-invariant operations."""
     try:
         from batch_invariant_ops import enable_batch_invariant_mode, disable_batch_invariant_mode
-        
-        print("\n" + "="*60)
+
         print("Testing with Batch-Invariant Mode DISABLED")
-        print("="*60)
+
         disable_batch_invariant_mode()
         results_normal = test_attention_batch_variance(num_iterations=50)
-        
-        print("\n" + "="*60)
+
         print("Testing with Batch-Invariant Mode ENABLED")
-        print("="*60)
         enable_batch_invariant_mode()
         results_invariant = test_attention_batch_variance(num_iterations=50)
         disable_batch_invariant_mode()
         
         # Compare results
-        print("\n" + "="*60)
-        print("SUMMARY")
-        print("="*60)
+        print("SUMMARY\n")
         
         for batch_size in [1, 2, 4, 8, 16, 32]:
             normal_unique = results_normal[batch_size]['unique_outputs']

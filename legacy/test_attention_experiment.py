@@ -327,10 +327,9 @@ def main():
             device=device
         )
         results["model_test"] = model_results
-    
-    print("\n" + "="*60)
+
     print("TEST COMPLETE")
-    print("="*60)
+
     
     # Print final summary
     if "standard" in results["implementations"] and "batch_invariant" in results["implementations"]:
@@ -346,7 +345,7 @@ def main():
         print(f"  Batch-Invariant: {inv_total_unique}")
         
         if inv_total_unique == len(results["implementations"]["batch_invariant"]):
-            print(f"\n✓ Batch-invariant implementation achieved perfect determinism!")
+            print(f"\nBatch-invariant implementation achieved perfect determinism!")
     
     return results
 

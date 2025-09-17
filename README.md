@@ -1,6 +1,18 @@
 # Batch Invariant Ops
 
-A companion library release to https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/. This library contains some batch-invariant kernels as well as an example of achieving deterministic vLLM inference.
+**Forked from [Thinking Machines Lab](https://github.com/thinking-machines-lab/batch_invariant_ops)** - a companion library to their excellent research on [defeating nondeterminism in LLM inference](https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/).
+
+## Extensions in This Fork
+
+While the original library provides batch-invariant kernels for deterministic inference, this fork adds comprehensive experiments demonstrating:
+
+- **Accumulation analysis** across transformer layers with precise error tracking
+- **Mixed precision effects** on batch-dependency amplification  
+- **Production quantization** testing with proper INT8 calibration
+- **Gradient flow analysis** showing training implications
+- **Realistic scale testing** up to 1.5B parameter models
+
+Credit to Thinking Machines Lab for the foundational research and implementation.
 
 ## Overview
 
@@ -88,51 +100,45 @@ with set_batch_invariant_mode(True):
 ## Deterministic Inference in vLLM
 `deterministic_vllm_inference.py` shows an proof of concept of validating that vLLM can be made deterministic with a minor upstream PR to use this library. Without the upstream PR, we see that out of 1000 random length 100 completions we see 18 unique samples. After the upstream PR, there is only one unique sample.
 
-## Attention Mechanism Experiment (NEW)
+## Comprehensive Accumulation Analysis (NEW)
 
-We've added batch-invariant attention implementations to address nondeterminism in transformer models. Attention is a critical component where batch-size dependent behavior can cascade through the entire model.
+This experiment provides a complete analysis of how `torch.mm` batch-dependencies propagate through transformer architectures, affecting mixed precision, quantization, and even gradient flow.
 
-### Running the Attention Experiment
+### Running the Experiments
 
 ```bash
-# Test both standard and batch-invariant attention
-python test_attention_experiment.py --implementation both
+# Comprehensive accumulation analysis with 5 distinct experiments
+python test_accumulation_quantization_mp.py
 
-# Test with different configurations
-python test_attention_experiment.py --seq-len 1024 --num-heads 16 --num-iterations 200
+# Basic torch.mm vs bmm/matmul comparison  
+python test_mm_and_bmm.py
 
-# Test with a real transformer model (requires transformers library)
-python test_attention_experiment.py --test-model --model-name gpt2
+# Original simple batch invariance test
+python test_batch_invariance.py
 ```
 
-### Key Findings
+### What the Comprehensive Analysis Shows
 
-Our experiments show that standard PyTorch attention produces different outputs depending on batch size:
-- With batch_size=1: 1 unique output (reference)
-- With batch_size=32: Often 50+ unique outputs from 100 iterations
+1. **Precise Error Tracking**: Monitors intermediate activations to pinpoint exactly where batch-dependencies accumulate
+2. **Mixed Precision Analysis**: Tests FP32, FP16, and BF16 precision effects on error propagation
+3. **Production Quantization**: Uses PyTorch's official INT8 quantization workflow with proper calibration
+4. **Deep Network Effects**: Tracks error accumulation across 8 transformer layers
+5. **Training Implications**: Analyzes how batch-dependencies affect gradient flow during training
 
-The batch-invariant implementation achieves:
-- **100% determinism** across all batch sizes
-- ~20-40% performance overhead (unoptimized)
-- Drop-in replacement for `F.scaled_dot_product_attention`
+### Key Experimental Insights
 
-### Using Batch-Invariant Attention
+- **Pre-FFN Measurement**: Tracks differences at the most critical accumulation point (before feed-forward networks)
+- **Gradient Flow Testing**: Shows batch-dependencies affect both forward AND backward passes
+- **Realistic Quantization**: Tests with properly calibrated INT8 models, not toy quantization
+- **GELU Activation Effects**: Demonstrates how non-linear activations interact with batch-dependencies
+- **Production Scale**: Tests with models up to 1.5B parameters to show real-world impact
 
-```python
-from batch_invariant_ops.batch_invariant_attention import (
-    batch_invariant_scaled_dot_product_attention,
-    register_batch_invariant_attention
-)
+### Why This Matters for Production
 
-# Option 1: Direct usage
-output = batch_invariant_scaled_dot_product_attention(
-    query, key, value, dropout_p=0.0, is_causal=False
-)
-
-# Option 2: Register globally (replaces F.scaled_dot_product_attention)
-register_batch_invariant_attention()
-# Now all calls to F.scaled_dot_product_attention use batch-invariant version
-```
+- **Training Stability**: Batch-dependencies can cause gradient inconsistencies during training
+- **Inference Reliability**: Mixed precision deployment amplifies small numerical differences
+- **Model Serving**: Different batch sizes in production can yield different results for the same input
+- **A/B Testing**: Batch-dependent models make fair comparison impossible
 
 ## Supported Operations
 
