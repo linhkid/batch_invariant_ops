@@ -16,13 +16,30 @@ pip install -e .
 
 ```python
 import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from batch_invariant_ops import set_batch_invariant_mode
 
-# Enable batch-invariant mode
+# Load a model (e.g., GPT-2)
+model = AutoModelForCausalLM.from_pretrained("gpt2")
+tokenizer = AutoTokenizer.from_pretrained("gpt2")
+model.eval()
+
+# Prepare input
+text = "The future of AI is"
+inputs = tokenizer(text, return_tensors="pt")
+
+# Run inference with batch-invariant mode for deterministic results
 with set_batch_invariant_mode():
-    # Your inference code here
-    model = YourModel()
-    output = model(input_tensor)
+    with torch.no_grad():
+        outputs = model.generate(
+            **inputs,
+            max_length=50,
+            temperature=0.0,  # Use greedy decoding for determinism
+            do_sample=False
+        )
+    
+result = tokenizer.decode(outputs[0], skip_special_tokens=True)
+print(result)
 ```
 
 ## Testing Batch-Invariance
